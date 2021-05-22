@@ -58,9 +58,9 @@ def construct_info(params):
     is_relational_dqn = params["is_relational_dqn"]
     upper_bound_critic = params["upper_bound_critic"]
     lower_bound_critic = params["lower_bound_critic"]
-    run_time = time.strftime('%m%d%H%M%S', time.localtime(time.time()))
-    info = run_time + \
-           "_" + agent_id + \
+    #run_time = time.strftime('%m%d%H%M%S', time.localtime(time.time()))
+    #info = run_time + \
+    info = "_" + agent_id + \
            "_T" + str(max_turn) + \
            "_ss" + str(simulation_size) + \
            "_lr" + str(lr) + \
