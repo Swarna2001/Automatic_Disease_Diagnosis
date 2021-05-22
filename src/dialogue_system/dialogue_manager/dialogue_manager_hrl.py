@@ -80,6 +80,14 @@ class DialogueManager_HRL(object):
         else:
             agent_action, master_action_index, lower_action_index = self.state_tracker.agent.next(state=state, turn=self.state_tracker.turn,
                                                                                               greedy_strategy=greedy_strategy, index=index)
+        
+            #print("\nMASTER_ACTION_INDEX : {}, LOWER_ACTION_INDEX : {}\n".format(master_action_index, lower_action_index))
+        
+        ''' 
+        The agent_action is going to be filled only by the worker agents. The worker agents action spce is either to inform the corresponding disease,
+        or to request for a particular symptom from the user. Hence the first two if conditions here. If neither of these are satisfied,
+        then it means the master has taken an action, and we need to go to master
+        '''
         if len(agent_action["request_slots"]) > 0:
             lower_action = list(agent_action["request_slots"].keys())[0]
             assert len(list(agent_action["request_slots"].keys())) == 1
@@ -102,11 +110,14 @@ class DialogueManager_HRL(object):
                 condition = False
             else:
                 condition = state['turn']==self.parameter.get("max_turn")+16
+
             if action_type == "disease" or condition:# or lower_action in self.lower_action_history:
                 #once the action is repeated or the dialogue reach the max turn, then the classifier will output the predicted disease
                 state_rep = self.current_state_representation(state)
                 disease = self.state_tracker.user.goal["disease_tag"]
                 Ys, pre_disease = self.model.predict([state_rep])
+                #print("PREDICTED DISEASE : ", self.id2disease[pre_disease[0]])
+                #print("ACTUAL DISEASE : ", disease)
                 '''
                 if index>20:
                     print(Ys)
@@ -131,10 +142,13 @@ class DialogueManager_HRL(object):
         user_action, reward, episode_over, dialogue_status = self.state_tracker.user.next(agent_action=agent_action,turn=self.state_tracker.turn)
         self.state_tracker.state_updater(user_action=user_action)
         if self.state_tracker.state['is_wrong_disease'] is True:
+          
+          #print("Wrong disease informed...updating one hot encoding")
           wrong_disease_name = self.state_tracker.state['current_slots']['wrong_diseases'][-1]
           id_of_disease = self.disease2id[wrong_disease_name]
-          self.state_tracker.state['state']['wrong_disease_rep'][id_of_disease] = 1
-          self.state_tracker.state['state']['is_wrong_disease'] = False
+          self.state_tracker.state['wrong_disease_rep'][id_of_disease] = 1
+          self.state_tracker.state['is_wrong_disease'] = False
+
 
         # print("turn:%2d, update after user :\n" % (state["turn"]), json.dumps(state))
         #print('status', dialogue_status)
@@ -275,17 +289,21 @@ class DialogueManager_HRL(object):
             slots_proportion_list.append(num_of_true_slots - 1)  #表示current slot问到的隐性slot的个数
             slots_proportion_list.append(num_of_all_slots - 1)   #表示current slot中含有的所有隐性slot的个数，即request的次数
             slots_proportion_list.append(real_implicit_slots)    #表示当前的goal 当中所含有的true slot的个数
+
             try:
                 last_master_action = self.master_action_history[-1]
             except:
                 last_master_action = -1
+
             if self.save_dialogue == True :
                 state = self.state_tracker.get_state()
                 goal = self.state_tracker.user.get_goal()
                 self.__output_dialogue(state=state, goal=goal, master_history=self.master_action_history)
+
             if last_master_action == group_id:
                 self.group_id_match += 1
             self.master_action_history = []
+            
             if self.parameter.get("train_mode") == False and self.parameter.get("agent_id").lower()=="agenthrlnew2":
                 #self.test_by_group[group_id][2] += 1
                 #if last_master_action == group_id:
@@ -536,10 +554,9 @@ class DialogueManager_HRL(object):
                                    output_size=len(self.disease_symptom),
                                    parameter=self.parameter)
         if self.parameter.get("train_mode") == False:
-            temp_path = self.parameter.get("saved_model")
-            path_list = temp_path.split('/')
-            path_list.insert(-1, 'classifier')
-            saved_model = '/'.join(path_list)
+            saved_model = self.parameter.get("saved_model").split('/')
+            saved_model.insert(-1, 'classifier')
+            saved_model = '/'.join(saved_model)
             self.model.restore_model(saved_model)
             self.model.eval_mode()
 
