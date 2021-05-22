@@ -14,6 +14,13 @@ from src.dialogue_system.agent.utils import state_to_representation_last, reduce
 from src.dialogue_system import dialogue_configuration
 from src.dialogue_system.agent.prioritized_new import PrioritizedReplayBuffer
 
+def print_output(text, x):
+  ''' This is a helper function to print out the contents of the dict
+  in a user friendly format on the screen '''
+  print("\n", text, "\n")
+  for i, j in x.items():
+    print("{} : {},".format(i, j))
+  print("\n")
 
 class AgentHRL_joint2(object):
     def __init__(self, action_set, slot_set, disease_symptom, parameter):
@@ -23,10 +30,12 @@ class AgentHRL_joint2(object):
         #self.slot_set.pop("disease")
         self.disease_symptom = disease_symptom
         self.master_experience_replay_size = 10000
+
         if parameter.get('prioritized_replay'):
             self.experience_replay_pool = PrioritizedReplayBuffer(buffer_size=self.master_experience_replay_size)
         else:
             self.experience_replay_pool = deque(maxlen=self.master_experience_replay_size)
+
         if self.parameter.get("data_type")=='simulated':
             self.input_size_dqn_all = {1: 374, 4: 494, 5: 389, 6: 339, 7: 279, 12: 304, 13: 359, 14: 394, 19: 414}
         elif self.parameter.get("data_type") == 'real':
@@ -62,7 +71,7 @@ class AgentHRL_joint2(object):
             #    temp_parameter["saved_model"] = parameter["saved_model"].split('model_d10_agent')[0] + 'lower/' + str(
             #        label) + '/model_d10_agent' + parameter["saved_model"].split('model_d10_agent')[1]
             # else:
-            path_list = parameter['saved_model'].split('/')
+            path_list = self.parameter["saved_model"].split('/')
             path_list.insert(-1, 'lower')
             path_list.insert(-1, str(label))
             temp_parameter[label]['saved_model'] = '/'.join(path_list)
@@ -70,7 +79,7 @@ class AgentHRL_joint2(object):
             temp_parameter[label]['gamma'] = temp_parameter[label]['gamma_worker']  # discount factor for the lower agent.
 
             temp_parameter[label]["input_size_dqn"] = self.input_size_dqn_all[int(label)]
-            print("WORKER " + label)
+            #print("WORKER " + label)
             #temp_parameter[label]["input_size_dqn"] = (len(slot_set)-1) *3
             self.id2lowerAgent[label] = LowerAgent(action_set=action_set, slot_set=slot_set,
                                                    disease_symptom=disease_symptom, parameter=temp_parameter[label],
@@ -91,7 +100,7 @@ class AgentHRL_joint2(object):
             '''
         
         # Master policy.
-        print("MASTER")
+        
         if parameter.get("state_reduced"):
             input_size = (len(self.slot_set)-1) * 3 + 90   # the dictionary of slot_set contains a key of "disease" which need to be removed first.
         else:
@@ -101,7 +110,7 @@ class AgentHRL_joint2(object):
 
         if self.parameter.get("disease_as_action") == False:
             self.output_size = len(self.id2lowerAgent) + 1  # the extra one size is the action of activating disease classifier
-        #print("input_size",input_size)
+        
         self.master = DQN2(input_size=input_size,
                            hidden_size=hidden_size,
                            output_size=self.output_size,
@@ -111,7 +120,7 @@ class AgentHRL_joint2(object):
         # self.experience_replay_pool = deque(maxlen=parameter.get("experience_replay_pool_size"))
         self.current_lower_agent_id = -1
         self.behave_prob = 1
-        #print("master:", self.master_action_space)
+        
         self.count = 0
         self.subtask_terminal = True
         self.subtask_turn = 0
@@ -119,16 +128,21 @@ class AgentHRL_joint2(object):
         self.past_lower_agent_pool = {key: 0 for key in self.id2lowerAgent.keys()}
 
         if parameter.get("train_mode") is False:
-            print("########## master model is restore now ##########")
-            self.master.restore_model(parameter.get("saved_model"))
+           
+            self.master.restore_model("/content/drive/MyDrive/Negative_Report/model/DQN/checkpoint/_agenthrljoint2_T22_ss100_lr0.0005_RFS66_RFF0_RFNCY0.0_RFIRS0_RFRA-44.0_RFRMT-66_mls0_gamma0.95_gammaW0.9_epsilon0.1_awd1_crs0_hwg0_wc0_var0_sdai0_wfrs44.0_dtft0_ird0_ubc0.985_lbc1e-10_dataSynthetic_Dataset_RID0/model_d10agenthrljoint2_s0.492_r-53.152_t23.048_mr0.061_mr2-0.203_e-904.pkl")
+            #self.master.restore_model(self.parameter.get("saved_model"))
             self.master.current_net.eval()
             self.master.target_net.eval()
+
+            print("########## master model is restore now ##########")
             for label, agent in self.id2lowerAgent.items():
-                #print(temp_parameter[label])
-                self.id2lowerAgent[label].dqn.restore_model(temp_parameter[label]['saved_model'])
+              # self.id2lowerAgent[label].dqn.restore_model(temp_parameter[label]['saved_model']
+                self.id2lowerAgent[label].dqn.restore_model(temp_parameter[label]['saved_model'] + 'model_d10agenthrljoint2_s0.492_r-53.152_t23.048_mr0.061_mr2-0.203_e-904.pkl')
                 self.id2lowerAgent[label].dqn.current_net.eval()
                 self.id2lowerAgent[label].dqn.target_net.eval()
+            print("########## worker models are restored now ##########")
 
+        
         self.agent_action = {
             "turn": 1,
             "action": None,
@@ -158,6 +172,9 @@ class AgentHRL_joint2(object):
         self.subtask_terminal = True
         self.subtask_turn = 0
         self.master_reward = 0
+
+        #text = "TURN {} : AGENT ACTION : ".format(0)
+        #print_output(text, self.agent_action)
 
     def next(self, state, turn, greedy_strategy, **kwargs):
         """
@@ -325,9 +342,11 @@ class AgentHRL_joint2(object):
 
                 loss = self.train(batch=batch)
                 cur_bellman_err += loss["loss"]
+
             print("[Master agent] cur bellman err %.4f, experience replay pool %s" % (
                 float(cur_bellman_err) / (self.experience_replay_pool.__len__() + 1e-10),
                 self.experience_replay_pool.__len__()))
+                
             for disease_id, lower_agent in self.id2lowerAgent.items():
                 if len(lower_agent.experience_replay_pool) > 120:
                     lower_agent.train_dqn()
@@ -503,7 +522,6 @@ class AgentHRL_joint2(object):
 
     def eval_mode(self):
         self.master.current_net.eval()
-
 
 
 
