@@ -161,6 +161,7 @@ class DQN(object):
         self.Transition = namedtuple('Transition', named_tuple)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.output_size = output_size
+        self.saved_model = ''
         if self.params["is_relational_dqn"] is False:
             if self.params.get("dqn_type") == "DuelingDQN":
                 self.current_net = DuelingDQN(input_size, hidden_size, output_size, parameter).to(self.device)
@@ -172,7 +173,7 @@ class DQN(object):
             self.current_net = DQNModelWithRelational(input_size, hidden_size, output_size, parameter).to(self.device)
             self.target_net = DQNModelWithRelational(input_size, hidden_size, output_size, parameter).to(self.device)
 
-        print(self.current_net)
+        #print(self.current_net)
 
         if torch.cuda.is_available():
             if parameter["multi_GPUs"] == True: # multi GPUs
@@ -199,7 +200,7 @@ class DQN(object):
         ], lr=self.params.get("dqn_learning_rate",0.0002))
 
         if self.params.get("train_mode") is False and self.params.get("agent_id").lower() == 'agentdqn':
-            self.restore_model(self.params.get("saved_model"))
+            self.restore_model(self.saved_model)
             self.current_net.eval()
             self.target_net.eval()
 
@@ -362,7 +363,8 @@ class DQN(object):
         average_match_rate2 = model_performance["average_match_rate2"]
         model_file_name = os.path.join(checkpoint_path, "model_d" + str(disease_number) +  str(agent_id) + "_s" + str(success_rate) + "_r" + str(average_reward) + "_t" + str(average_turn)\
                           + "_mr" + str(average_match_rate) + "_mr2-" + str(average_match_rate2) + "_e-" + str(episodes_index) + ".pkl")
-
+        self.saved_model= model_file_name
+        print("WORKER saved at ", model_file_name)
         torch.save(self.current_net.state_dict(), model_file_name)
 
     def restore_model(self, saved_model):
@@ -394,6 +396,7 @@ class DQN2(object):
         self.Transition = namedtuple('Transition', named_tuple)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.output_size = output_size
+        self.saved_model = ''
         if self.params.get("agent_id").lower() == 'agenthrljoint2':
             self.Transition = namedtuple('Transition',('state', 'agent_action', 'reward', 'next_state', 'episode_over', 'subtask_turn'))
 
@@ -407,7 +410,7 @@ class DQN2(object):
         else:
             self.current_net = DQNModelWithRelational(input_size, hidden_size, output_size, parameter).to(self.device)
             self.target_net = DQNModelWithRelational(input_size, hidden_size, output_size, parameter).to(self.device)
-        print(self.current_net)
+        #print(self.current_net)
 
         if torch.cuda.is_available():
             if parameter["multi_GPUs"] == True: # multi GPUs
@@ -435,7 +438,7 @@ class DQN2(object):
         ], lr=self.params.get("dqn_learning_rate",0.0002))
 
         if self.params.get("train_mode") is False and self.params.get("agent_id").lower() == 'agentdqn':
-            self.restore_model(self.params.get("saved_model"))
+            self.restore_model(self.saved_model)
             self.current_net.eval()
             self.target_net.eval()
 
@@ -593,7 +596,8 @@ class DQN2(object):
         average_match_rate2 = model_performance["average_match_rate2"]
         model_file_name = os.path.join(checkpoint_path, "model_d" + str(disease_number) +  str(agent_id) + "_s" + str(success_rate) + "_r" + str(average_reward) + "_t" + str(average_turn)\
                           + "_mr" + str(average_match_rate) + "_mr2-" + str(average_match_rate2) + "_e-" + str(episodes_index) + ".pkl")
-
+        print("MASTER saved at ", model_file_name)
+        self.saved_model= model_file_name
         torch.save(self.current_net.state_dict(), model_file_name)
 
     def restore_model(self, saved_model):
@@ -603,7 +607,8 @@ class DQN2(object):
         Args:
             saved_model (str): the file name which is the trained model.
         """
-        print("loading trained model", saved_model)
+        
+        print("Master - Loading trained model", saved_model)
         if torch.cuda.is_available() is False:
             map_location = 'cpu'
         else:
