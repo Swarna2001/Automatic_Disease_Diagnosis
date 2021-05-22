@@ -37,7 +37,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--disease_number", dest="disease_number", type=int,default=disease_number,help="the number of disease.")
 
 # simulation configuration
-parser.add_argument("--simulate_epoch_number", dest="simulate_epoch_number", type=int, default=50, help="The number of simulate epoch.")
+parser.add_argument("--simulate_epoch_number", dest="simulate_epoch_number", type=int, default=100, help="The number of simulate epoch.")
 parser.add_argument("--simulation_size", dest="simulation_size", type=int, default=100, help="The number of simulated sessions in each simulated epoch.")
 parser.add_argument("--evaluate_session_number", dest="evaluate_session_number", type=int, default=1000, help="the size of each simulate epoch when evaluation.")
 parser.add_argument("--experience_replay_pool_size", dest="experience_replay_pool_size", type=int, default=10000, help="the size of experience replay.")
@@ -45,23 +45,24 @@ parser.add_argument("--hidden_size_dqn", dest="hidden_size_dqn", type=int, defau
 parser.add_argument("--warm_start", dest="warm_start",type=boolean_string, default=False, help="Filling the replay buffer with the experiences of rule-based agents. {True, False}")
 parser.add_argument("--warm_start_epoch_number", dest="warm_start_epoch_number", type=int, default=30, help="the number of epoch of warm starting.")
 parser.add_argument("--batch_size", dest="batch_size", type=int, default=100, help="the batch size when training.")
-parser.add_argument("--log_dir", dest="log_dir", type=str, default="/content/drive/MyDrive/Negative_Report/log", help="directory where event file of training will be written, ending with /")
+parser.add_argument("--log_dir", dest="log_dir", type=str, default="/content/drive/MyDrive/Negative_Report/log/", help="directory where event file of training will be written, ending with /")
 parser.add_argument("--epsilon", dest="epsilon", type=float, default=0.1, help="The greedy probability of DQN")
 parser.add_argument("--gamma", dest="gamma", type=float, default=0.95, help="The discount factor of immediate reward in RL.")
 parser.add_argument("--gamma_worker", dest="gamma_worker", type=float, default=0.9, help="The discount factor of immediate reward of the lower agent in HRL.")
-parser.add_argument("--train_mode", dest="train_mode", type=boolean_string, default=True, help="Running this code in training mode? [True, False]")
+parser.add_argument("--train_mode", dest="train_mode", type=boolean_string, default=False, help="Running this code in training mode? [True, False]")
 parser.add_argument('--data_type', dest='data_type', type=str, default='simulated', help='the data type is either simulated or real')
 
 #  Save model, performance and dialogue content ? And what is the path if yes?
 parser.add_argument("--save_performance",dest="save_performance", type=boolean_string, default=True, help="save the performance? [True, False]")
 parser.add_argument("--save_model", dest="save_model", type=boolean_string, default=True,help="Save model during training? [True, False]")
-parser.add_argument("--saved_model", dest="saved_model", type=str, default="/content/drive/MyDrive/Negative_Report/model/DQN/checkpoint/0512035724_agenthrljoint2_T22_ss100_lr0.0005_RFS66_RFF0_RFNCY0.0_RFIRS0_RFRA-44_RFRMT-66_mls0_gamma0.95_gammaW0.9_epsilon0.1_awd0_crs0_hwg0_wc0_var0_sdai0_wfrs44.0_dtft0_ird0_ubc0.985_lbc1e-10_dataLabel13_RID0/model_d10agentAgentWithGoal_s0.993_r41.658_t6.799_wd0.0_e-822.pkl")
-parser.add_argument("--save_dialogue", dest="save_dialogue", type=boolean_string, default=True, help="Save the dialogue? [True, False]")
+parser.add_argument("--saved_model", dest="saved_model", type=str, default="/content/drive/MyDrive/Negative_Report/model/DQN/checkpoint/_agenthrljoint2_T22_ss100_lr0.0005_RFS66_RFF0_RFNCY0.0_RFIRS0_RFRA-44.0_RFRMT-66_mls0_gamma0.95_gammaW0.9_epsilon0.1_awd1_crs0_hwg0_wc0_var0_sdai0_wfrs44.0_dtft0_ird0_ubc0.985_lbc1e-10_dataSynthetic_Dataset_RID0/")
+parser.add_argument("--save_dialogue", dest="save_dialogue", type=boolean_string, default=False, help="Save the dialogue? [True, False]")
 parser.add_argument("--dialogue_file", dest="dialogue_file", type=str, default="/content/drive/MyDrive/Negative_Report/data/dialogue_output/dialogue_file.txt", help="the file that used to save dialogue content.")
 parser.add_argument("--run_id", dest='run_id', type=int, default=0, help='the id of this running.')
 
+
 # user configuration.
-parser.add_argument("--allow_wrong_disease", dest="allow_wrong_disease", type=boolean_string, default=False, help="Allow the agent to inform wrong disease? 0512035724_agenthrljoint2_T22_ss100_lr0.0005_RFS66_RFF0_RFNCY0.0_RFIRS0_RFRA-44_RFRMT-66_mls0_gamma0.95_gammaW0.9_epsilon0.1_awd0_crs0_hwg0_wc0_var0_sdai0_wfrs44.0_dtft0_ird0_ubc0.985_lbc1e-10_dataLabel13_RID0:Yes, 0:No")
+parser.add_argument("--allow_wrong_disease", dest="allow_wrong_disease", type=boolean_string, default=True, help="Allow the agent to inform wrong disease?")
 
 # the number condition of explicit symptoms and implicit symptoms in each user goal.
 parser.add_argument("--explicit_number", dest="explicit_number", type=int, default=0, help="the number of explicit symptoms of used sample")
@@ -89,8 +90,9 @@ parser.add_argument("--reward_for_fail", dest="reward_for_fail", type=float,defa
 parser.add_argument("--reward_for_inform_right_symptom", dest="reward_for_inform_right_symptom", type=float,default=0)
 parser.add_argument("--minus_left_slots", dest="minus_left_slots", type=boolean_string, default=False,help="Success reward minus the number of left slots as the final reward for a successful session.{True, False}")
 parser.add_argument("--reward_for_reach_max_turn", dest="reward_for_reach_max_turn", type=float, default=-66)
-parser.add_argument("--reward_for_repeated_action", dest='reward_for_repeated_action', type=float, default= -44, help='the reward for repeated action')
+parser.add_argument("--reward_for_repeated_action", dest='reward_for_repeated_action', type=float, default= -44.0, help='the reward for repeated action')
 parser.add_argument("--weight_for_reward_shaping", dest='weight_for_reward_shaping', type=float, default=44.0, help="weight for reward shaping. 0 means no reward shaping.")
+parser.add_argument("--reward_for_inform_wrong_disease", dest="reward_for_inform_wrong_disease", type=float, default=-44.0, help="The reward when the user denies the informed disease.")
 
 # agent to use and DQN setting.
 # parser.add_argument("--agent_id", dest="agent_id", type=str, default='AgentDQN', help="The agent to be used:[AgentRule, AgentDQN, AgentRandom, AgentHRL, AgentHRLGoal]")
@@ -188,19 +190,24 @@ def run(parameter):
     else:
         raise ValueError('Agent id should be one of [AgentRule, AgentDQN, AgentRandom, AgentHRL, AgentWithGoal, AgentWithGoal2, AgentWithGoalJoint].')
 
-    steward.dialogue_manager.set_agent(agent=agent)
-    if train_mode is True: # Train
-        steward.simulate(epoch_number=simulate_epoch_number, train_mode=train_mode)
-    else: # test
-        for index in range(simulate_epoch_number):
-            steward.evaluate_model(dataset='test', index=index)
+    while True:
+      steward.dialogue_manager.set_agent(agent=agent)
+      if train_mode is True: # Train
+          steward.simulate(epoch_number=simulate_epoch_number, train_mode=train_mode)
+      else: # test
+          for index in range(simulate_epoch_number):
+              steward.evaluate_model(dataset='test', index=index)
+      choice = input("Do you want to continue ? ")
+      if choice == 'no':
+        break
+      train_mode = False
 
 if __name__ == "__main__":
     params = verify_params(parameter)
     gpu_str = params["gpu"]
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpu_str#  '0,0220173244_AgentWithGoal_T22_lr0.0001_RFS44_RFF-22_RFNCY-1_RFIRS-1_mls0_gamma0.95_gammaW0.95_epsilon0.1_awd0_crs0_hwg0_wc0_var0_sdai0_wfrs0.0_dtft1_dataReal_World_RID3_DQN,2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = gpu_str
     torch.cuda.manual_seed(12345)
     torch.manual_seed(12345)
-    #print(params['run_info'])
+    print(params['run_info'])
     run(parameter=parameter)
-
+    
