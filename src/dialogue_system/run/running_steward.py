@@ -36,10 +36,13 @@ class RunningSteward(object):
 
         user = User(goal_set=goal_set, disease_symptom=disease_symptom,parameter=parameter)
         agent = AgentRule(action_set=action_set, slot_set=slot_set, disease_symptom=disease_symptom, parameter=parameter)
+
         if parameter.get("use_all_labels"):
             self.dialogue_manager = DialogueManager_HRL(user=user, agent=agent, parameter=parameter)
         else:
             self.dialogue_manager = DialogueManager(user=user, agent=agent, parameter=parameter)
+
+
         if self.parameter.get("disease_as_action") == False:
             if self.parameter.get("classifier_type") == "machine_learning":
                 self.dialogue_manager.train_ml_classifier()
@@ -64,11 +67,13 @@ class RunningSteward(object):
         # initializing the count matrix for AgentWithGoal
         # print('Initializing the count matrix for AgentWithGoal')
         # self.simulation_epoch(epoch_size=500, train_mode=train_mode)
+
         save_model = self.parameter.get("save_model")
         save_performance = self.parameter.get("save_performance")
+
         # self.dialogue_manager.state_tracker.user.set_max_turn(max_turn=self.parameter.get('max_turn'))
         for index in range(0, epoch_number,1):
-            print("EPOCH ", index, "\n-------------------------------------------------\n")
+            #print("EPOCH ", index, "\n-------------------------------------------------\n")
             
             # Training AgentDQN with experience replay
             if train_mode is True:
@@ -77,6 +82,7 @@ class RunningSteward(object):
                 # Simulating and filling experience replay pool.
                 self.simulation_epoch(epoch_size=self.epoch_size, index=index)
 
+            
             # Evaluating the model.
             print("Evaluating Epoch ", index)
             result = self.evaluate_model(dataset="train", index=index)
@@ -120,18 +126,24 @@ class RunningSteward(object):
         inform_wrong_disease_count = 0
         for epoch_index in range(0,epoch_size, 1):
             
+            # We initialize the first user turn followed by agent turn. The actual simulation begins after this statement execution.
             self.dialogue_manager.initialize(dataset="train")
             
             episode_over = False
             while episode_over is False:
                 reward, episode_over, dialogue_status,slots_proportion_list= self.dialogue_manager.next(greedy_strategy=True, save_record=True, index=index)
                 total_reward += reward
+
+            
             total_turns += self.dialogue_manager.state_tracker.turn
             inform_wrong_disease_count += self.dialogue_manager.inform_wrong_disease_count
             if dialogue_status == dialogue_configuration.DIALOGUE_STATUS_SUCCESS:
                 success_count += 1
                 if self.dialogue_manager.inform_wrong_disease_count == 0:
                     absolute_success_count += 1
+            
+            
+                    
         success_rate = float("%.3f" % (float(success_count) / epoch_size))
         absolute_success_rate = float("%.3f" % (float(absolute_success_count) / epoch_size))
         average_reward = float("%.3f" % (float(total_reward) / epoch_size))
@@ -254,10 +266,10 @@ class RunningSteward(object):
                 self.dialogue_manager.acc_by_group = {x: [0, 0, 0] for x in self.dialogue_manager.state_tracker.agent.master_action_space}
 
         if self.parameter.get("use_all_labels") == True and self.parameter.get("agent_id").lower() in ["agenthrljoint", "agenthrljoint2"] and self.parameter.get('train_mode') == False:
-            pickle.dump(self.dialogue_manager.disease_record, open('./../../data/disease_record.p', 'wb'))
-            pickle.dump(self.dialogue_manager.lower_reward_by_group, open('./../../data/lower_reward_by_group.p', 'wb'))
-            pickle.dump(self.dialogue_manager.master_index_by_group, open('./../../data/master_index_by_group.p', 'wb'))
-            pickle.dump(self.dialogue_manager.symptom_by_group, open('./../../data/symptom_by_group.p', 'wb'))
+            pickle.dump(self.dialogue_manager.disease_record, open('/content/drive/MyDrive/Negative_Report/data/disease_record.p', 'wb'))
+            pickle.dump(self.dialogue_manager.lower_reward_by_group, open('/content/drive/MyDrive/Negative_Report/data/lower_reward_by_group.p', 'wb'))
+            pickle.dump(self.dialogue_manager.master_index_by_group, open('/content/drive/MyDrive/Negative_Report/data/master_index_by_group.p', 'wb'))
+            pickle.dump(self.dialogue_manager.symptom_by_group, open('/content/drive/MyDrive/Negative_Report/data/symptom_by_group.p', 'wb'))
             print("##################   the disease record is saved   #####################")
 
         if self.parameter.get("use_all_labels") and self.parameter.get("agent_id").lower()=="agenthrlnew2" and self.parameter.get("disease_as_action"):
