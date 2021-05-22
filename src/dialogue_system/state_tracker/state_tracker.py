@@ -10,6 +10,13 @@ sys.path.append(os.getcwd().replace("src/dialogue_system/state_tracker", ""))
 
 from src.dialogue_system import dialogue_configuration
 
+def print_output(text, x):
+  ''' This is a helper function to print out the contents of the dict
+  in a user friendly format on the screen '''
+  print("\n", text, "\n")
+  for i, j in x.items():
+    print("{} : {},".format(i, j))
+  print("\n")
 
 class StateTracker(object):
     def __init__(self, user, agent,parameter):
@@ -52,6 +59,8 @@ class StateTracker(object):
             "wrong_disease_rep" : [0 for i in range(0, 90)],   # one hot encoding of the disease identified wrongly
             "is_wrong_disease": False  # boolean variable to know if a disease has been identified wrongly
         }
+        #text = "TURN {} : STATE TRACKER : ".format(self.turn)
+        #print_output(text, self.state)
 
     def set_agent(self, agent):
         self.agent = agent
@@ -70,8 +79,10 @@ class StateTracker(object):
         inform_slots = list(user_action["inform_slots"].keys())
         if "disease" in inform_slots and user_action["action"] == "deny":
             if user_action["inform_slots"]["disease"] not in self.state["current_slots"]["wrong_diseases"]:
+                #print("Inform Slots - WRONG DISEASE INFORMING HAS BEEN IDENTIFIED !!")
                 self.state["current_slots"]["wrong_diseases"].append(user_action["inform_slots"]["disease"])
-                self.state[is_wrong_disease] = True
+                self.state["is_wrong_disease"] = True
+                
         
         if "disease" in inform_slots: inform_slots.remove("disease")
         for slot in inform_slots:
@@ -88,6 +99,8 @@ class StateTracker(object):
         if "disease" in explicit_inform_slots and user_action["action"] == "deny":
             if user_action["inform_slots"]["disease"] not in self.state["current_slots"]["wrong_diseases"]:
                 self.state["current_slots"]["wrong_diseases"].append(user_action["explicit_inform_slots"]["disease"])
+                print("Explicit Inform Slots - WRONG DISEASE INFORMING HAS BEEN IDENTIFIED !!")
+                exit(0)
         
         if "disease" in explicit_inform_slots: explicit_inform_slots.remove("disease")
         for slot in explicit_inform_slots:
@@ -103,6 +116,8 @@ class StateTracker(object):
         if "disease" in implicit_inform_slots and user_action["action"] == "deny":
             if user_action["inform_slots"]["disease"] not in self.state["current_slots"]["wrong_diseases"]:
                 self.state["current_slots"]["wrong_diseases"].append(user_action["implicit_inform_slots"]["disease"])
+                print("Implicit Inform Slots - WRONG DISEASE INFORMING HAS BEEN IDENTIFIED !!")
+                exit(0)
         
         if "disease" in implicit_inform_slots: implicit_inform_slots.remove("disease")
         for slot in implicit_inform_slots:
@@ -113,23 +128,38 @@ class StateTracker(object):
             if slot in self.state["current_slots"]["agent_request_slots"].keys():
                 self.state["current_slots"]["agent_request_slots"].pop(slot)
 
-        
+        #text = "TURN {} : USER ACTION - STATE TRACKER : ".format(self.turn)
+        #print_output(text, self.state)
         
 
     def _state_update_with_agent_action(self, agent_action):
         # Updating dialog state with agent_action.
         explicit_implicit_slot_value = copy.deepcopy(self.user.goal["goal"]["explicit_inform_slots"])
         explicit_implicit_slot_value.update(self.user.goal["goal"]["implicit_inform_slots"])
-
+        
         self.state["agent_action"] = agent_action
         temp_action = copy.deepcopy(agent_action)
         temp_action["current_slots"] = copy.deepcopy(self.state["current_slots"])# save current_slots for every turn.
         self.state["history"].append(temp_action)
-        # import json
-        # print(json.dumps(agent_action, indent=2))
+        
         for slot in agent_action["request_slots"].keys():
             self.state["current_slots"]["agent_request_slots"][slot] = agent_action["request_slots"][slot]
 
+        ''' 
+        Since we are using agentdqn as the lower agents and agenthrljoint2 file for hrl, the agent actions never have any 
+        inform slots or explicit inform slots or implicit inform slots ever filled. The agent actions are only of the form 
+
+        action : request,
+        inform_slots : {},
+        request_slots : {'Side pain': 'UNK'},
+        explicit_inform_slots : {},
+        implicit_inform_slots : {},
+        turn : 1,
+        speaker : agent,
+        action_index : 61,
+
+        Hence the below parts of code are never exceuted..
+        '''
         # Inform slots.
         for slot in agent_action["inform_slots"].keys():
             # The slot is come from user's goal["request_slots"]
@@ -166,3 +196,6 @@ class StateTracker(object):
             # Remove the slot if it is in current_slots["user_request_slots"]
             if slot in self.state["current_slots"]["user_request_slots"].keys():
                 self.state["current_slots"]["user_request_slots"].pop(slot)
+
+        #text = "TURN {} : AGENT ACTION - STATE TRACKER : ".format(self.turn)
+        #print_output(text, self.state)
