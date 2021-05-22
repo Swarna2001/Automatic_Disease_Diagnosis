@@ -50,6 +50,13 @@ sys.path.append(os.getcwd().replace("src/dialogue_system",""))
 from src.dialogue_system import dialogue_configuration
 from src.dialogue_system.agent.agent import Agent
 
+def print_output(text, x):
+  ''' This is a helper function to print out the contents of the dict
+  in a user friendly format on the screen '''
+  print("\n", text, "\n")
+  for i, j in x.items():
+    print("{} : {},".format(i, j))
+  print("\n")
 
 class User(object):
     def __init__(self, goal_set, disease_symptom, parameter):
@@ -98,6 +105,7 @@ class User(object):
         for slot in goal["implicit_inform_slots"].keys():
             if slot not in self.state["request_slots"].keys():
                 self.state["rest_slots"][slot] = "implicit_inform_slots" # Remember where the rest slot comes from.
+
         for slot in goal["explicit_inform_slots"].keys():
             if slot not in self.state["request_slots"].keys():
                 self.state["rest_slots"][slot] = "explicit_inform_slots"
@@ -108,6 +116,10 @@ class User(object):
         
         
         user_action = self._assemble_user_action()
+
+        #text = "TURN {} : USER ACTION : ".format(self.state['turn'])
+        #print_output(text, user_action)
+        
         return user_action
 
     def _init(self,dataset, goal_index=None):
@@ -131,6 +143,9 @@ class User(object):
         else:
             self.goal = self.goal_set[dataset][goal_index]
         
+        #text = "CHOSEN USER GOAL : "
+        #print_output(text, self.goal)
+
         self.episode_over = False
         self.dialogue_status = dialogue_configuration.DIALOGUE_STATUS_NOT_COME_YET
         self.constraint_check = dialogue_configuration.CONSTRAINT_CHECK_FAILURE
@@ -176,6 +191,7 @@ class User(object):
         else:
             temp_turn = self.max_turn - 2
         #if self.state["turn"] == (self.max_turn - 2):
+
         if self.state["turn"] == temp_turn:
             self.episode_over = True
             self.state["action"] = dialogue_configuration.CLOSE_DIALOGUE
@@ -533,7 +549,8 @@ class User(object):
         elif self.dialogue_status == dialogue_configuration.DIALOGUE_STATUS_FAILED:
             return self.parameter.get("reward_for_fail")
         elif self.dialogue_status == dialogue_configuration.DIALOGUE_STATUS_INFORM_WRONG_DISEASE:
-            return dialogue_configuration.REWARD_FOR_INFORM_WRONG_DISEASE
+            #return dialogue_configuration.REWARD_FOR_INFORM_WRONG_DISEASE
+            return self.parameter.get("reward_for_inform_wrong_disease")
         elif self.dialogue_status == dialogue_configuration.DIALOGUE_STATUS_INFORM_RIGHT_SYMPTOM:
             return self.parameter.get("reward_for_inform_right_symptom")
         elif self.dialogue_status == dialogue_configuration.DIALOGUE_STATUS_REACH_MAX_TURN:
@@ -610,7 +627,7 @@ class User(object):
                     
                     # If the key aldready exists, update its count by 1
                     disease_sample_count[goal["disease_tag"]] += 1
-            print(key, len(temp_goal_set[key]))
+            #print(key, len(temp_goal_set[key]))
         return temp_goal_set, disease_sample_count
 
     def set_max_turn(self, max_turn):
