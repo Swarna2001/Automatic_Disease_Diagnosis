@@ -1,2 +1,2 @@
-# Automatic_Disease_Diagnosis
-This repository contains all the information related to ADS
+# Automatic_Disease_Diagnosis - Probabilistic Framework Experiment
+This repository contains all the information related to ADS - Probabilistic Framework Experiment. In this study, we aim to develop a bayesian network that can capture the symptom-disease relationships present in our dataset. Our objective is to learn if such knowledge can be used to correct the agent's actions and improvise the model's behavior.
